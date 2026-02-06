@@ -5,8 +5,8 @@ const ROTATION_JITTER = 0.2;
 const SCALE_JITTER = 0.05;
 const JITTER_SPEED = 0.008;
 
-// INCREASED SCALE: 0.85 fills the 1000px height much better than 0.65
-const MAIN_NUMBER_SCALE = 0.85; 
+// Scale is now relative to height to ensure it fits any screen
+let mainNumberScale; 
 
 const PARTICLES_PER_ZONE = 120;
 const EDGE_TAPER = 0.7;
@@ -43,15 +43,17 @@ const months = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", 
 const days = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 
 function preload() {
-  mainFont = loadFont('MP-B.ttf', () => { fontsLoaded = true; }, () => { fontsLoaded = true; });  
+  mainFont = loadFont('MP-B.ttf', () => { fontsLoaded = true; });  
   footerFont = loadFont('MS-Bk.otf');
   sidebarFont = loadFont('MP-M.ttf'); 
   particleImg = loadImage('sprite_32.png'); 
 }
 
 function setup() {
-  // Hard-coded target resolution
-  createCanvas(1600, 1000);
+  // Use actual window dimensions
+  createCanvas(windowWidth, windowHeight);
+  calculateScales();
+  
   imageMode(CENTER);
   rectMode(CENTER);
   fetchLocation();
@@ -74,6 +76,26 @@ function setup() {
   lastSecond = second();
   currentDigits = [h[0], h[1], m[0], m[1]];
   prevDigits = [...currentDigits];
+}
+
+function calculateScales() {
+    // Dynamically adjust scale based on screen height
+    mainNumberScale = (height / 1000) * 0.65;
+}
+
+// Handle window resizing
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  calculateScales();
+  
+  // Re-distribute particle boundaries
+  let zoneWidth = width / 4;
+  for (let z = 0; z < 4; z++) {
+    for (let p of zoneParticles[z]) {
+      p.minX = z * zoneWidth;
+      p.maxX = (z + 1) * zoneWidth;
+    }
+  }
 }
 
 function draw() {
@@ -99,8 +121,7 @@ function draw() {
   let zoneW = width / 4;
   for (let z = 0; z < 4; z++) {
     let xOffset = (z * zoneW) + (zoneW / 2);
-    // Adjusted vertical offset calculation
-    let yOffset = height / 2 - (120 * MAIN_NUMBER_SCALE); 
+    let yOffset = height / 2 - (130 * mainNumberScale); 
     
     if (nextDigits[z] !== currentDigits[z]) {
       prevDigits[z] = currentDigits[z];
@@ -118,15 +139,13 @@ function draw() {
       drawArchitecturalBlueprint(currentDigits[z], xOffset, yOffset, 255, false);
     }
 
-    let pts = textToPoints(currentDigits[z], xOffset, yOffset, 850 * MAIN_NUMBER_SCALE, 20); 
+    let pts = textToPoints(currentDigits[z], xOffset, yOffset, 850 * mainNumberScale, 20); 
 
     if (!initialPositionsSet && pts.length > 0) {
       for (let i = 0; i < zoneParticles[z].length; i++) {
         let randomIdx = shuffledIndices[i % pts.length];
         let startPt = pts[randomIdx % pts.length];
-        let startX = startPt.x + random(-GRID_RANDOMNESS, GRID_RANDOMNESS);
-        let startY = startPt.y + random(-GRID_RANDOMNESS, GRID_RANDOMNESS);
-        zoneParticles[z][i].pos.set(startX, startY);
+        zoneParticles[z][i].pos.set(startPt.x, startPt.y);
       }
       if (z === 3) initialPositionsSet = true;
     }
@@ -154,7 +173,7 @@ function drawArchitecturalBlueprint(txt, x, y, alphaVal, isGlitching) {
   translate(x, y);
   textAlign(CENTER, CENTER);
   textFont(mainFont);
-  textSize(425 * MAIN_NUMBER_SCALE); 
+  textSize(425 * mainNumberScale); 
   noFill();
   let lightGrey = color('#BBC6C3');
   let pureWhite = color('#FFFFFF');
@@ -163,11 +182,8 @@ function drawArchitecturalBlueprint(txt, x, y, alphaVal, isGlitching) {
   let flashIntensity = isGlitching ? Math.sin(map(alphaVal, 0, 255, 0, PI)) : 0;
   for (let i = 0; i < NUM_LAYERS; i++) {
     push();
-    let baseAlpha = map(i, 0, NUM_LAYERS, 25, 60);
-    let layerAlpha = baseAlpha * (alphaVal / 255);
-    let colorMix = noise(i, frameCount * JITTER_SPEED);
-    let baseCol = lerpColor(lightGrey, pureWhite, colorMix);
-    let finalCol = lerpColor(baseCol, flashTarget, flashIntensity * 0.5);
+    let layerAlpha = map(i, 0, NUM_LAYERS, 25, 60) * (alphaVal / 255);
+    let finalCol = lerpColor(lerpColor(lightGrey, pureWhite, noise(i, frameCount * JITTER_SPEED)), flashTarget, flashIntensity * 0.5);
     finalCol.setAlpha(layerAlpha);
     stroke(finalCol); 
     strokeWeight(0.7);
@@ -203,30 +219,30 @@ function fetchLocation() {
     city = data.city ? data.city.toUpperCase().substring(0, 12) : "UNKNOWN";
     country = data.country_name ? data.country_name.toUpperCase().substring(0, 12) : "UNKNOWN";
     locationFetched = true;
-  }, (err) => {
-    setTimeout(fetchLocation, 10000);
   });
 }
 
 function drawLayout(time, dateDayText, cityCountryText) {
   let zoneW = width / 4;
+  let responsiveSidebarOffset = map(width, 1000, 2000, 40, 70);
+  
   for (let i = 0; i < 4; i++) {
     let startX = i * zoneW;
-    fill(255); noStroke(); textFont(footerFont); textAlign(LEFT, BOTTOM); textSize(50);
+    fill(255); noStroke(); textFont(footerFont); textAlign(LEFT, BOTTOM); 
+    textSize(height * 0.05);
     text(time, startX + 40, height - 20);
     
-    // Sidebar Top (City/Country)
     push();
     textFont(sidebarFont); fill('#BBB6C3'); noStroke();
-    translate(startX + zoneW - 55, 40); rotate(-HALF_PI); textAlign(RIGHT, CENTER); textSize(16);
+    translate(startX + zoneW - responsiveSidebarOffset, 40); rotate(-HALF_PI); 
+    textAlign(RIGHT, CENTER); textSize(height * 0.016);
     text(cityCountryText, 0, 0);
     pop();
     
-    // Sidebar Bottom (Full Date)
     push();
     textFont(sidebarFont); fill('#BBB6C3'); 
-    translate(startX + zoneW - 55, height - 26);
-    rotate(-HALF_PI); textAlign(LEFT, CENTER); textSize(16); 
+    translate(startX + zoneW - responsiveSidebarOffset, height - 26);
+    rotate(-HALF_PI); textAlign(LEFT, CENTER); textSize(height * 0.016); 
     text(dateDayText, 0, 0);
     pop();
     
@@ -246,9 +262,7 @@ class Particle {
     this.baseSize = random(18, 30) * BASE_PARTICLE_SCALE; 
     this.rotation = random(TWO_PI);
     this.rotSpeed = random(-0.03, 0.03);
-    let c1 = color('#89C925');
-    let c2 = color('#577740');
-    this.myColor = lerpColor(c1, c2, random(1));
+    this.myColor = lerpColor(color('#89C925'), color('#577740'), random(1));
   }
   setTarget(x, y) { this.target.set(x, y); }
   deflect(neighbors) {
@@ -280,7 +294,7 @@ class Particle {
     translate(this.pos.x, this.pos.y); rotate(this.rotation);
     let d = dist(this.pos.x, this.pos.y, cX, cY);
     let edgeScale = map(d, 0, 420, 1.0, EDGE_TAPER); 
-    let finalSize = this.baseSize * constrain(edgeScale, EDGE_TAPER, 1.0);
+    let finalSize = this.baseSize * constrain(edgeScale, EDGE_TAPER, 1.0) * (height / 1000);
     finalSize *= (1 + (pulse * BEAT_SCALE_BOOST)); 
     tint(this.myColor);
     image(particleImg, 0, 0, finalSize, finalSize);
