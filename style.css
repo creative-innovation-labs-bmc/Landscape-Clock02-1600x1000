@@ -1,0 +1,17 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; 
+    background-color: #1C1B1C; /* Prevents a white flash on load */
+}
+
+canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+}
