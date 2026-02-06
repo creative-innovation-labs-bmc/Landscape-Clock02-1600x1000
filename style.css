@@ -7,11 +7,16 @@ html, body {
     justify-content: center;
     align-items: center;
     overflow: hidden; 
-    background-color: #1C1B1C; /* Prevents a white flash on load */
+    background-color: #1C1B1C;
 }
 
 canvas {
     display: block;
+    /* Forces the 1600x1000 proportion */
+    aspect-ratio: 16 / 10; 
+    /* Ensures it fits the screen without stretching */
     max-width: 100%;
     max-height: 100%;
+    width: auto;
+    height: auto;
 }

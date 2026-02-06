@@ -5,8 +5,8 @@ const ROTATION_JITTER = 0.2;
 const SCALE_JITTER = 0.05;
 const JITTER_SPEED = 0.008;
 
-// Adjusted scale for 1600 width to prevent digit overlap
-const MAIN_NUMBER_SCALE = 0.65; 
+// INCREASED SCALE: 0.85 fills the 1000px height much better than 0.65
+const MAIN_NUMBER_SCALE = 0.85; 
 
 const PARTICLES_PER_ZONE = 120;
 const EDGE_TAPER = 0.7;
@@ -39,7 +39,6 @@ let transitionAlphas = [0, 0, 0, 0];
 const FADE_SPEED = 1.8; 
 const FLASH_COLOR = "#577740";
 
-// Full names for months and days
 const months = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
 const days = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 
@@ -51,6 +50,7 @@ function preload() {
 }
 
 function setup() {
+  // Hard-coded target resolution
   createCanvas(1600, 1000);
   imageMode(CENTER);
   rectMode(CENTER);
@@ -99,7 +99,8 @@ function draw() {
   let zoneW = width / 4;
   for (let z = 0; z < 4; z++) {
     let xOffset = (z * zoneW) + (zoneW / 2);
-    let yOffset = height / 2 - (140 * MAIN_NUMBER_SCALE); 
+    // Adjusted vertical offset calculation
+    let yOffset = height / 2 - (120 * MAIN_NUMBER_SCALE); 
     
     if (nextDigits[z] !== currentDigits[z]) {
       prevDigits[z] = currentDigits[z];
